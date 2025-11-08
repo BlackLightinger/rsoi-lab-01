@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, status, Response
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel as PydanticBaseModel, ConfigDict
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from sqlalchemy.pool import StaticPool
@@ -35,11 +35,11 @@ def initialize_database():
         return database_engine, sessionmaker(bind=database_engine), ModelBase
 
 
-engine, DatabaseSessionLocal, BaseModel = initialize_database()
+engine, DatabaseSessionLocal, Base = initialize_database()
 
 
 # Data entity definition
-class PersonRecord(BaseModel):
+class PersonRecord(Base):
     __tablename__ = "people_records"
 
     record_id = Column(Integer, primary_key=True, index=True)
@@ -50,11 +50,11 @@ class PersonRecord(BaseModel):
 
 
 # Initialize database schema
-BaseModel.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 
 # Data validation schemas
-class PersonInputSchema(BaseModel):
+class PersonInputData(PydanticBaseModel):
     model_config = ConfigDict(from_attributes=True)
     full_name: str
     years_old: int
@@ -62,21 +62,21 @@ class PersonInputSchema(BaseModel):
     profession: str
 
 
-class PersonCreationSchema(PersonInputSchema):
+class PersonCreationData(PersonInputData):
     pass
 
 
-class PersonOutputSchema(PersonInputSchema):
+class PersonOutputData(PersonInputData):
     record_id: int
 
 
-class ErrorMessageSchema(BaseModel):
+class ErrorMessageData(PydanticBaseModel):
     error_text: str
 
 
 def create_error_response(error_message, http_code):
     return JSONResponse(
-        content=ErrorMessageSchema(error_text=error_message).model_dump(),
+        content=ErrorMessageData(error_text=error_message).model_dump(),
         status_code=http_code
     )
 
@@ -105,19 +105,19 @@ def fetch_person_record(record_identifier, database_session):
     return person_data
 
 
-@api_application.get("/persons/{record_identifier}", response_model=PersonOutputSchema)
+@api_application.get("/persons/{record_identifier}", response_model=PersonOutputData)
 def retrieve_person_record(record_identifier: int, database: Session = Depends(obtain_database_session)):
     return fetch_person_record(record_identifier, database)
 
 
-@api_application.get("/persons", response_model=list[PersonOutputSchema])
+@api_application.get("/persons", response_model=list[PersonOutputData])
 def retrieve_all_persons(database: Session = Depends(obtain_database_session)):
     return database.query(PersonRecord).all()
 
 
 @api_application.post("/persons", status_code=status.HTTP_201_CREATED)
 def add_person_record(
-        person_input: PersonCreationSchema,
+        person_input: PersonCreationData,
         http_response: Response,
         database: Session = Depends(obtain_database_session)
 ):
@@ -130,7 +130,7 @@ def add_person_record(
     return None
 
 
-@api_application.patch("/persons/{record_identifier}", response_model=PersonOutputSchema)
+@api_application.patch("/persons/{record_identifier}", response_model=PersonOutputData)
 def modify_person_record(
         record_identifier: int,
         update_data: dict,

@@ -9,7 +9,7 @@ import os
 os.environ["TESTING"] = "1"
 
 # Импорт компонентов приложения
-from main import api_application, obtain_database_session, BaseModel, PersonRecord, engine
+from main import api_application, obtain_database_session, Base, PersonRecord, engine
 
 # Создание тестовой сессии
 TestSessionFactory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -31,10 +31,10 @@ api_application.dependency_overrides[obtain_database_session] = test_database_pr
 @pytest.fixture
 def test_client():
     # Инициализация схемы данных
-    BaseModel.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     yield TestClient(api_application)
     # Очистка после тестов
-    BaseModel.metadata.drop_all(bind=engine)
+    Base.metadata.drop_all(bind=engine)
 
 
 # Данные для тестирования
