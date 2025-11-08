@@ -42,11 +42,11 @@ engine, DatabaseSessionLocal, Base = initialize_database()
 class PersonRecord(Base):
     __tablename__ = "people_records"
 
-    record_id = Column(Integer, primary_key=True, index=True)
-    full_name = Column(String, nullable=False)
-    years_old = Column(Integer, nullable=False)
-    residence = Column(String, nullable=False)
-    profession = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    age = Column(Integer, nullable=False)
+    address = Column(String, nullable=False)
+    work = Column(String, nullable=False)
 
 
 # Initialize database schema
@@ -56,10 +56,10 @@ Base.metadata.create_all(bind=engine)
 # Data validation schemas
 class PersonInputData(PydanticBaseModel):
     model_config = ConfigDict(from_attributes=True)
-    full_name: str
-    years_old: int
-    residence: str
-    profession: str
+    name: str
+    age: int
+    address: str
+    work: str
 
 
 class PersonCreationData(PersonInputData):
@@ -67,7 +67,7 @@ class PersonCreationData(PersonInputData):
 
 
 class PersonOutputData(PersonInputData):
-    record_id: int
+    id: int
 
 
 class ErrorMessageData(PydanticBaseModel):
@@ -94,9 +94,9 @@ def obtain_database_session():
         database_session.close()
 
 
-def fetch_person_record(record_identifier, database_session):
+def fetch_person_record(identifier, database_session):
     person_data = database_session.query(PersonRecord).filter(
-        PersonRecord.record_id == record_identifier
+        PersonRecord.id == identifier
     ).first()
 
     if person_data is None:
@@ -105,9 +105,9 @@ def fetch_person_record(record_identifier, database_session):
     return person_data
 
 
-@api_application.get("/persons/{record_identifier}", response_model=PersonOutputData)
-def retrieve_person_record(record_identifier: int, database: Session = Depends(obtain_database_session)):
-    return fetch_person_record(record_identifier, database)
+@api_application.get("/persons/{identifier}", response_model=PersonOutputData)
+def retrieve_person_record(identifier: int, database: Session = Depends(obtain_database_session)):
+    return fetch_person_record(identifier, database)
 
 
 @api_application.get("/persons", response_model=list[PersonOutputData])
@@ -126,17 +126,17 @@ def add_person_record(
     database.commit()
     database.refresh(new_person)
 
-    http_response.headers["Location"] = f"/persons/{new_person.record_id}"
+    http_response.headers["Location"] = f"/persons/{new_person.id}"
     return None
 
 
-@api_application.patch("/persons/{record_identifier}", response_model=PersonOutputData)
+@api_application.patch("/persons/{identifier}", response_model=PersonOutputData)
 def modify_person_record(
-        record_identifier: int,
+        identifier: int,
         update_data: dict,
         database: Session = Depends(obtain_database_session)
 ):
-    person_record = fetch_person_record(record_identifier, database)
+    person_record = fetch_person_record(identifier, database)
 
     for attribute_name, attribute_value in update_data.items():
         if not hasattr(person_record, attribute_name):
@@ -148,12 +148,12 @@ def modify_person_record(
     return person_record
 
 
-@api_application.delete("/persons/{record_identifier}", status_code=204)
+@api_application.delete("/persons/{identifier}", status_code=204)
 def remove_person_record(
-        record_identifier: int,
+        identifier: int,
         database: Session = Depends(obtain_database_session)
 ):
-    person_data = fetch_person_record(record_identifier, database)
+    person_data = fetch_person_record(identifier, database)
 
     database.delete(person_data)
     database.commit()

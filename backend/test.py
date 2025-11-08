@@ -40,17 +40,17 @@ def test_client(test_database_session):
 
 # Данные для тестирования
 SAMPLE_RECORD = {
-    "full_name": "Johnathan Davis",
-    "years_old": 30,
-    "residence": "123 Maple Street",
-    "profession": "Software Engineer"
+    "name": "Johnathan Davis",
+    "age": 30,
+    "address": "123 Maple Street",
+    "work": "Software Engineer"
 }
 
 UPDATED_RECORD = {
-    "full_name": "Janet Smithson",
-    "years_old": 25,
-    "residence": "456 Oak Boulevard",
-    "profession": "Data Scientist"
+    "name": "Janet Smithson",
+    "age": 25,
+    "address": "456 Oak Boulevard",
+    "work": "Data Scientist"
 }
 
 
@@ -72,9 +72,9 @@ class TestPeopleRecordsAPI:
 
         assert result.status_code == 200
         response_data = result.json()
-        assert response_data["record_id"] == 1
-        assert response_data["full_name"] == "Johnathan Davis"
-        assert response_data["years_old"] == 30
+        assert response_data["id"] == 1
+        assert response_data["name"] == "Johnathan Davis"
+        assert response_data["age"] == 30
 
     def test_missing_record_retrieval(self, test_client):
         """Проверка обработки запроса отсутствующей записи"""
@@ -94,8 +94,8 @@ class TestPeopleRecordsAPI:
         assert result.status_code == 200
         response_data = result.json()
         assert len(response_data) == 2
-        assert response_data[0]["full_name"] == "Johnathan Davis"
-        assert response_data[1]["full_name"] == "Janet Smithson"
+        assert response_data[0]["name"] == "Johnathan Davis"
+        assert response_data[1]["name"] == "Janet Smithson"
 
     def test_successful_record_modification(self, test_client):
         """Проверка обновления данных записи"""
@@ -107,9 +107,9 @@ class TestPeopleRecordsAPI:
 
         assert result.status_code == 200
         response_data = result.json()
-        assert response_data["record_id"] == 1
-        assert response_data["full_name"] == "Janet Smithson"
-        assert response_data["years_old"] == 25
+        assert response_data["id"] == 1
+        assert response_data["name"] == "Janet Smithson"
+        assert response_data["age"] == 25
 
     def test_modify_missing_record(self, test_client):
         """Проверка обновления отсутствующей записи"""
@@ -147,16 +147,16 @@ class TestPeopleRecordsAPI:
 
         # Извлечение идентификатора из заголовка
         location_header = creation_result.headers["Location"]
-        record_identifier = location_header.split("/")[-1]
+        identifier = location_header.split("/")[-1]
 
         # Получение созданной записи по ссылке
         retrieval_result = test_client.get(location_header)
         assert retrieval_result.status_code == 200
 
         response_data = retrieval_result.json()
-        assert response_data["record_id"] == int(record_identifier)
-        assert response_data["full_name"] == "Johnathan Davis"
-        assert response_data["years_old"] == 30
+        assert response_data["id"] == int(identifier)
+        assert response_data["name"] == "Johnathan Davis"
+        assert response_data["age"] == 30
 
 
 # Запуск тестовой последовательности
