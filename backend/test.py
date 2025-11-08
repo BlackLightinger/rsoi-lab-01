@@ -15,21 +15,22 @@ from main import api_application, obtain_database_session, Base, PersonRecord, e
 TestSessionFactory = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-# Замена зависимости базы данных
-def test_database_provider():
+# Фикстура для базы данных
+@pytest.fixture
+def test_database_session():
+    database = TestSessionFactory()
     try:
-        database = TestSessionFactory()
         yield database
     finally:
         database.close()
 
 
-api_application.dependency_overrides[obtain_database_session] = test_database_provider
-
-
 # Фикстура тестового клиента
 @pytest.fixture
-def test_client():
+def test_client(test_database_session):
+    # Заменяем зависимость базы данных
+    api_application.dependency_overrides[obtain_database_session] = lambda: test_database_session
+
     # Инициализация схемы данных
     Base.metadata.create_all(bind=engine)
     yield TestClient(api_application)
